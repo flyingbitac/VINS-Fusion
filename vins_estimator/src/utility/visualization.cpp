@@ -117,12 +117,38 @@ void printStatistics(const Estimator &estimator, double t)
     sum_of_path += (estimator.Ps[WINDOW_SIZE] - last_path).norm();
     last_path = estimator.Ps[WINDOW_SIZE];
     ROS_DEBUG("sum of path %f", sum_of_path);
-    if (ESTIMATE_TD)
-        ROS_INFO("td %f", estimator.td);
+    // if (ESTIMATE_TD)
+        // ROS_INFO("td %f", estimator.td);
 }
 
 void pubOdometry(const Estimator &estimator, const std_msgs::Header &header)
 {
+    if (estimator.solver_flag == Estimator::SolverFlag::INITIAL)
+    {
+        ofstream fout(VINS_RESULT_PATH, ios::out);
+        //cout << "VINS_RESULT_PATH is opened? " << !fout << " "<< fout.bad() << " "<< fout.fail()<< endl;
+        fout << "#timestamp" << ""
+             << "px" << " " 
+             << "py" << " "
+             << "pz" << " "
+             << "qx" << " "
+             << "qy" << " "
+             << "qz" << " "
+             << "qw" << endl;
+        fout.close();
+        
+        std::string VINS_RESULT_BIAS_PATH = OUTPUT_FOLDER+"/bias.txt";
+        ofstream fout_(VINS_RESULT_BIAS_PATH, ios::out);
+        fout_ << "timestamp" << " "
+              << "ba_x" << " " 
+              << "ba_y" << " "
+              << "ba_z" << " "
+              << "bg_x" << " "
+              << "bg_y" << " "
+              << "bg_z" << endl;
+        fout_.close();
+    }
+
     if (estimator.solver_flag == Estimator::SolverFlag::NON_LINEAR)
     {
         nav_msgs::Odometry odometry;
@@ -153,25 +179,43 @@ void pubOdometry(const Estimator &estimator, const std_msgs::Header &header)
         pub_path.publish(path);
 
         // write result to file
-        ofstream foutC(VINS_RESULT_PATH, ios::app);
-        foutC.setf(ios::fixed, ios::floatfield);
-        foutC.precision(0);
-        foutC << header.stamp.toSec() * 1e9 << ",";
-        foutC.precision(5);
-        foutC << estimator.Ps[WINDOW_SIZE].x() << ","
-              << estimator.Ps[WINDOW_SIZE].y() << ","
-              << estimator.Ps[WINDOW_SIZE].z() << ","
-              << tmp_Q.w() << ","
-              << tmp_Q.x() << ","
-              << tmp_Q.y() << ","
-              << tmp_Q.z() << ","
-              << estimator.Vs[WINDOW_SIZE].x() << ","
-              << estimator.Vs[WINDOW_SIZE].y() << ","
-              << estimator.Vs[WINDOW_SIZE].z() << "," << endl;
-        foutC.close();
-        Eigen::Vector3d tmp_T = estimator.Ps[WINDOW_SIZE];
-        printf("time: %f, t: %f %f %f q: %f %f %f %f \n", header.stamp.toSec(), tmp_T.x(), tmp_T.y(), tmp_T.z(),
-                                                          tmp_Q.w(), tmp_Q.x(), tmp_Q.y(), tmp_Q.z());
+        ofstream fout(VINS_RESULT_PATH, ios::app);
+
+        if (!fout || fout.bad() || fout.fail())
+            std::cout << "VINS_RESULT_PATH not opened! Check if the path exists." << std::endl;
+        
+        fout.setf(ios::fixed, ios::floatfield);
+        fout.precision(6);
+        fout << header.stamp.toSec() << " ";
+        fout.precision(8);
+        fout << estimator.Ps[WINDOW_SIZE].x() << " "
+             << estimator.Ps[WINDOW_SIZE].y() << " "
+             << estimator.Ps[WINDOW_SIZE].z() << " "
+             << tmp_Q.x() << " "
+             << tmp_Q.y() << " "
+             << tmp_Q.z() << " " 
+             << tmp_Q.w() << endl;
+        fout.close();
+        // Eigen::Vector3d tmp_T = estimator.Ps[WINDOW_SIZE];
+        // printf("time: %f, t: %f %f %f q: %f %f %f %f \n", header.stamp.toSec(), 
+        //                                                   tmp_T.x(), tmp_T.y(), tmp_T.z(),
+        //                                                   tmp_Q.w(), tmp_Q.x(), tmp_Q.y(), tmp_Q.z());
+
+        std::string VINS_RESULT_BIAS_PATH = OUTPUT_FOLDER+"/bias.txt";
+        ofstream fout_(VINS_RESULT_BIAS_PATH, ios::app);
+        if (!fout_ || fout_.bad() || fout_.fail())
+            std::cout << "VINS_RESULT_PATH not opened! Check if the path exists." << std::endl;
+        fout_.setf(ios::fixed, ios::floatfield);
+        fout_.precision(6);
+        fout_ << header.stamp.toSec() << " ";
+        fout_.precision(8);
+        fout_ << estimator.Bas[WINDOW_SIZE].x() << " "
+              << estimator.Bas[WINDOW_SIZE].y() << " " 
+              << estimator.Bas[WINDOW_SIZE].z() << " "
+              << estimator.Bgs[WINDOW_SIZE].x() << " "
+              << estimator.Bgs[WINDOW_SIZE].y() << " " 
+              << estimator.Bgs[WINDOW_SIZE].z() << endl;
+        fout_.close();
     }
 }
 

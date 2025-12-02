@@ -108,10 +108,13 @@ void readParameters(std::string config_file)
     MIN_PARALLAX = MIN_PARALLAX / FOCAL_LENGTH;
 
     fsSettings["output_path"] >> OUTPUT_FOLDER;
-    VINS_RESULT_PATH = OUTPUT_FOLDER + "/vio.csv";
+    VINS_RESULT_PATH = OUTPUT_FOLDER + "/stamped_traj_estimate.txt";
+
     std::cout << "result path " << VINS_RESULT_PATH << std::endl;
-    std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
-    fout.close();
+    std::ofstream foutC(VINS_RESULT_PATH, std::ios::out);
+    if (!foutC || foutC.bad() || foutC.fail())
+        std::cout << "VINS_RESULT_PATH not opened! Check if the path exists." << std::endl;
+    foutC.close();
 
     ESTIMATE_EXTRINSIC = fsSettings["estimate_extrinsic"];
     if (ESTIMATE_EXTRINSIC == 2)
@@ -119,14 +122,14 @@ void readParameters(std::string config_file)
         ROS_WARN("have no prior about extrinsic param, calibrate extrinsic param");
         RIC.push_back(Eigen::Matrix3d::Identity());
         TIC.push_back(Eigen::Vector3d::Zero());
-        EX_CALIB_RESULT_PATH = OUTPUT_FOLDER + "/extrinsic_parameter.csv";
+        EX_CALIB_RESULT_PATH = OUTPUT_FOLDER + "/extrinsic_parameter.txt";
     }
     else 
     {
         if ( ESTIMATE_EXTRINSIC == 1)
         {
             ROS_WARN(" Optimize extrinsic param around initial guess!");
-            EX_CALIB_RESULT_PATH = OUTPUT_FOLDER + "/extrinsic_parameter.csv";
+            EX_CALIB_RESULT_PATH = OUTPUT_FOLDER + "/extrinsic_parameter.txt";
         }
         if (ESTIMATE_EXTRINSIC == 0)
             ROS_WARN(" fix extrinsic param ");
