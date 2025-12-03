@@ -26,6 +26,7 @@ image_height: 240
 estimate_extrinsic: 1   # 0  Have an accurate extrinsic parameters. We will trust the following imu^R_cam, imu^T_cam, don't change it.
                         # 1  Have an initial guess about extrinsic parameters. We will optimize around your initial guess.
 
+# left eye
 body_T_cam0: !!opencv-matrix
    rows: 4
    cols: 4
@@ -34,6 +35,7 @@ body_T_cam0: !!opencv-matrix
          -1., 0., 0.,  0.017,
           0., -1., 0,  0.048,
           0., 0., 0.,  1.]
+# right eye
 body_T_cam1: !!opencv-matrix
    rows: 4
    cols: 4
