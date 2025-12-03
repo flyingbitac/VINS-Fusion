@@ -81,10 +81,12 @@ void readParameters(std::string config_file)
 
     fsSettings["image0_topic"] >> IMAGE0_TOPIC;
     fsSettings["image1_topic"] >> IMAGE1_TOPIC;
-    MAX_CNT = fsSettings["max_cnt"];
+    ros::param::get("~max_cnt", MAX_CNT);
+    // MAX_CNT = fsSettings["max_cnt"];
     MIN_DIST = fsSettings["min_dist"];
     F_THRESHOLD = fsSettings["F_threshold"];
-    SHOW_TRACK = fsSettings["show_track"];
+    ros::param::get("~show_track", SHOW_TRACK);
+    // SHOW_TRACK = fsSettings["show_track"];
     FLOW_BACK = fsSettings["flow_back"];
 
     MULTIPLE_THREAD = fsSettings["multiple_thread"];
@@ -188,8 +190,10 @@ void readParameters(std::string config_file)
     else
         ROS_INFO_STREAM("Synchronized sensors, fix time offset: " << TD);
 
-    ROW = fsSettings["image_height"];
-    COL = fsSettings["image_width"];
+    ros::param::get("~image_height", ROW);
+    ros::param::get("~image_width", COL);
+    // ROW = fsSettings["image_height"];
+    // COL = fsSettings["image_width"];
     ROS_INFO("ROW: %d COL: %d ", ROW, COL);
 
     if(!USE_IMU)
