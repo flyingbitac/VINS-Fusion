@@ -1,17 +1,103 @@
 <launch>
-    <arg name="config_file" default="$(find vins)/../config/fast_drone_250.yaml"/>
+    <arg name="vins_feat_cnt"         default="150"/>
+    <arg name="vins_show_track"       default="0"/>
+    <arg name="vins_width"            default="640"/>
+    <arg name="vins_height"           default="480"/>
+    <arg name="config_file"           default="$(find vins)/../config/fast_drone_250.yaml"/>
+    <arg name="emitter_enabled"       default="false"/>
+    <arg name="vins_delay"            default="3"/>
+
+    <arg name="width"                 default="640"/>
+    <arg name="height"                default="480"/>
+    <arg name="fps"                   default="30"/>
+
+    <arg name="enable_depth"          default="true"/>
+    <arg name="enable_color"          default="false"/>
+
+    <arg name="enable_fisheye"        default="false"/>
+    <arg name="enable_gyro"           default="false"/>
+    <arg name="enable_accel"          default="false"/>
+    <arg name="enable_pointcloud"     default="false"/>
+    <arg name="enable_sync"           default="false"/>
+
+    <arg name="decimation"            default="2"/>
+    <arg name="hole_filling"          default="1"/>
+    <arg name="temporal_smooth_alpha" default="0.8"/>
+
+    <!-- px4 and imu frequency adjustment -->
     <include file="$(find mavros)/launch/px4.launch"/>
     <node pkg="mavros" type="mavcmd" name="imu_freq_adjust_1" args="long 511 105 5000 0 0 0 0 0" launch-prefix="bash -c 'sleep 1; $0 $@' "/>
     <node pkg="mavros" type="mavcmd" name="imu_freq_adjust_2" args="long 511 31 5000 0 0 0 0 0" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
-    <include file="$(find accel_control)/launch/realsense_camera.launch">
-        <arg name="enable_infra1"         value="true"/>
-        <arg name="enable_infra2"         value="true"/>
+
+    <!-- camera node -->
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+        <arg name="serial_no"         value=""/>
+        <arg name="json_file_path"    value=""/>
+
+        <arg name="enable_depth"      value="$(arg enable_depth)"/>
+        <arg name="enable_color"      value="$(arg enable_color)"/>
+        <arg name="enable_infra1"     value="true"/>
+        <arg name="enable_infra2"     value="true"/>
+
+        <arg name="enable_fisheye"    value="$(arg enable_fisheye)"/>
+        <arg name="enable_gyro"       value="$(arg enable_gyro)"/>
+        <arg name="enable_accel"      value="$(arg enable_accel)"/>
+        <arg name="enable_pointcloud" value="$(arg enable_pointcloud)"/>
+        <arg name="enable_sync"       value="$(arg enable_sync)"/>
+
+        <arg name="depth_width"       value="$(arg width)"/>
+        <arg name="depth_height"      value="$(arg height)"/>
+        <arg name="depth_fps"         value="$(arg fps)"/>
+        <arg name="color_width"       value="$(arg width)"/>
+        <arg name="color_height"      value="$(arg height)"/>
+        <arg name="color_fps"         value="$(arg fps)"/>
+        <arg name="infra_width"       value="$(arg width)"/>
+        <arg name="infra_height"      value="$(arg height)"/>
+        <arg name="infra_fps"         value="$(arg fps)"/>
+
+        <arg name="tf_prefix"         value="camera"/>
+        <arg name="filters"           value="decimation,disparity,spatial,temporal,disparity,hole_filling"/>
     </include>
+
+    <!-- toggle the emitter following https://github.com/realsenseai/realsense-ros/issues/1379#issuecomment-691453842 -->
+    <node name="emitter_toggle" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters camera/stereo_module">
+        <param name="emitter_enabled" value="$(arg emitter_enabled)"/>
+    </node>
+
+    <!-- Definition and parameters of filters can be found at https://dev.intelrealsense.com/docs/post-processing-filters -->
+    
+    <!-- see full param list by running `rosrun dynamic_reconfigure dynparam get /camera/decimation` -->
+    <node name="configure_decimation" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters camera/decimation">
+        <param name="filter_magnitude" value="$(arg decimation)" />
+    </node>
+    
+    <!-- see full param list by running `rosrun dynamic_reconfigure dynparam get /camera/spatial` -->
+    <node name="configure_spatial_filter" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters camera/spatial">
+        <param name="filter_magnitude" value="2" />
+        <param name="filter_smooth_delta" value="20" />
+        <param name="holes_fill" value="0"/>
+        <param name="filter_smooth_alpha" value="0.5"/>
+    </node>
+
+    <!-- see full param list by running `rosrun dynamic_reconfigure dynparam get /camera/temporal` -->
+    <node name="configure_temporal_filter" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters camera/temporal">
+        <param name="filter_smooth_delta" value="20" />
+        <param name="holes_fill" value="3"/>
+        <param name="filter_smooth_alpha" value="$(arg temporal_smooth_alpha)"/>
+    </node>
+    
+    <!-- see full param list by running `rosrun dynamic_reconfigure dynparam get /camera/hole_filling` -->
+    <node name="configure_hole_filling" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters camera/hole_filling">
+        <!-- 0: fill_from_left, 1: farest_from_around, 2: nearest_from_around -->
+        <param name="holes_fill" value="1" />
+    </node>
+
+    <!-- vins fusion -->
     <include file="$(find timed_roslaunch)/launch/timed_roslaunch.launch">
-        <arg name="time" value="3" />
+        <arg name="time" value="$(arg vins_delay)" />
         <arg name="pkg" value="vins" />
         <arg name="file" value="fast_drone_250.launch" />
         <arg name="node_name" value="vins" /> <!-- This is optional jBrgment -->
-        <arg name="value" value="config_file:=$(arg config_file)"/>
+        <arg name="value" value="config_file:=$(arg config_file) max_cnt:=$(arg vins_feat_cnt) show_track:=$(arg vins_show_track) image_height:=$(arg vins_height) image_width:=$(arg vins_width)"/>
     </include>
 </launch>
