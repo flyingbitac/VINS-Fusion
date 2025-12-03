@@ -1,0 +1,17 @@
+<launch>
+    <arg name="config_file" default="$(find vins)/../config/fast_drone_250.yaml"/>
+    <include file="$(find mavros)/launch/px4.launch"/>
+    <node pkg="mavros" type="mavcmd" name="imu_freq_adjust_1" args="long 511 105 5000 0 0 0 0 0" launch-prefix="bash -c 'sleep 1; $0 $@' "/>
+    <node pkg="mavros" type="mavcmd" name="imu_freq_adjust_2" args="long 511 31 5000 0 0 0 0 0" launch-prefix="bash -c 'sleep 2; $0 $@' "/>
+    <include file="$(find accel_control)/launch/realsense_camera.launch">
+        <arg name="enable_infra1"         value="true"/>
+        <arg name="enable_infra2"         value="true"/>
+    </include>
+    <include file="$(find timed_roslaunch)/launch/timed_roslaunch.launch">
+        <arg name="time" value="3" />
+        <arg name="pkg" value="vins" />
+        <arg name="file" value="fast_drone_250.launch" />
+        <arg name="node_name" value="vins" /> <!-- This is optional jBrgment -->
+        <arg name="value" value="config_file:=$(arg config_file)"/>
+    </include>
+</launch>
